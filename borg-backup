@@ -1,0 +1,466 @@
+#!/bin/bash
+#
+# Copyright (C) 2018-2023  IMAGIN Sp. z o.o.
+# Author: Marcin Engelmann <mengelmann@octivi.com>
+#
+#/ Wrapper for a deduplicating archiver BorgBackup. It simplifies performing
+#/ everyday tasks on multiply repositories.
+#/ Homepage: https://github.com/octivi/borg-backup-wrapper/
+#/
+#/ Usage: borg-backup [-c config file] <command> [archive [path...]]
+#/
+#/ Commands (borg commands mapped 1:1):
+#/   - break-lock|compact|create|check|delete|extract|info|init|list|prune|recreate|with-lock
+#/
+#/ Commands bundles (executes one after another, with the same environmental settings):
+#/   - create+prune|create+prune+check|prune+check
+#/
+#/ Arguments for command 'create':
+#/   - path - paths to archive (required if BORG_PATHS is not set)
+#/
+#/ Arguments for command 'delete':
+#/   - archive - archive to delete (required)
+#/
+#/ Arguments for command 'extract':
+#/   - archive - archive to extract (required)
+#/   - path - paths to extract; patterns are supported (optional)
+#/   - WARNING: extract always writes into the current working directory ("."), so make sure you changed
+#/              directory to the right place before calling borg extract.
+#/
+#/ Arguments for command 'get-key' (contains sensitive information!):
+#/   - path - if repository is accessible, then save BORG_PASSPHRASE and BORG_KEY to this file (optional)
+#/
+#/ Arguments for command 'list':
+#/   - archive - archive to list (required)
+#/
+#/ Required environmental variables:
+#/   - BORG_REPO - the default repository location
+#/     https://borgbackup.readthedocs.io/en/stable/usage/general.html#repository-urls
+#/   - BORG_PASSPHRASE - the passphrase for encrypted repository
+#/
+#/ Optional environmental variables:
+#/   - BORG_OPTIONS_CREATE - array of additional options to 'create' command, defaults to () (empty array)
+#/   - BORG_OPTIONS_PRUNE - array of additional options to 'prune' command, defaults to () (empty array)
+#/   - BORG_COMPRESSION - defaults to 'lz4'
+#/   - BORG_ENCRYPTION - defaults to 'repokey-blake2'
+#/   - BORG_ARCHIVE_NAME - defaults to '{now:%Y-%m-%dT%H:%M:%S}'
+#/   - BORG_BASE_DIR - defaults to borg defaults
+#/   - BORG_CONFIG_DIR - defaults to 'BORG_BASE_DIR/config' if BORG_BASE_DIR is set
+#/   - BORG_CACHE_DIR - defaults to 'BORG_BASE_DIR/cache' if BORG_BASE_DIR is set
+#/   - BORG_SECURITY_DIR - defaults to 'BORG_BASE_DIR/security' if BORG_BASE_DIR is set
+#/   - BORG_KEYS_DIR - defaults to 'BORG_BASE_DIR/keys' if BORG_BASE_DIR is set
+#/   - BORG_LOG_DIR - defaults to 'BORG_BASE_DIR/logs' if BORG_BASE_DIR is set or empty if BORG_BASE_DIR is not set
+#/   - BORG_LOG_FILE - defaults to '<DATE>-<REPO>-<COMMAND>.log'
+#/   - BORG_KEEP_WITHIN - defaults to 30 days (if set then overwrites other BORG_KEEP_* options)
+#/   - BORG_KEEP_YEARLY - defaults to 5 years
+#/   - BORG_KEEP_MONTHLY - defaults to 24 months (2 years)
+#/   - BORG_KEEP_WEEKLY - defaults to 52 weeks (1 year)
+#/   - BORG_KEEP_DAILY - defaults to 30 days (1 month)
+#/   - BORG_KEEP_HOURLY - defaults to 168 hours (7 days)
+#/   - BORG_PATHS - array paths to archive, defaults to () (empty array)
+#/   - and others, see http://borgbackup.readthedocs.io/en/stable/man_intro.html#environment-variables
+
+# Octivi Bash Boilerplate (OBB) Header
+################################################################################
+# Unofficial Bash "Strict Mode"
+# http://redsymbol.net/articles/unofficial-bash-strict-mode/
+set -o errexit -o nounset -o pipefail
+# Define common constants regardless if they are used in the script
+__my_name="$(basename "${BASH_SOURCE[0]}")"
+readonly __my_name
+__my_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+readonly __my_dir
+__my_path="${__my_dir}/${__my_name}"
+# shellcheck disable=SC2034
+readonly __my_path
+__my_args="$*"
+# shellcheck disable=SC2034
+readonly __my_args
+# Set IFS to just newline and tab
+IFS=$'\n\t'
+# Include Octivi Bash Boilerplate (OBB) Library
+# shellcheck source=/dev/null
+source "/usr/local/share/octivi-bash-boilerplate"
+################################################################################
+
+
+################################################################################
+# Clean up temporary files on script exit.
+#
+# Globals:
+#   - _BORG_KEY_TMPDIR
+################################################################################
+function cleanup() {
+  # Function is invoked indirectly via trap.
+  # shellcheck disable=SC2317
+  local -r ret=$?
+
+  # Function is invoked indirectly via trap.
+  # shellcheck disable=SC2317
+  [[ -v _BORG_KEY_TMPDIR ]] && [[ -d "${_BORG_KEY_TMPDIR}" ]] && rm -rf "${_BORG_KEY_TMPDIR}"
+
+  # Function is invoked indirectly via trap.
+  # shellcheck disable=SC2317
+  exit "${ret}"
+}
+
+
+# ------------------------------------------------------------------------------
+# Clean up on script exit.
+trap cleanup EXIT
+
+# Requirements
+require_bash_version 4 4 || die 2 "At least Bash 4.4 is required"
+require_command borg || die 2 "Cannot find 'borg'. Install from https://github.com/borgbackup/borg/releases"
+
+while getopts :c:h opt; do
+  case $opt in
+    c)
+      BORG_CONFIG_FILE="${OPTARG}"
+      ;;
+    h)
+      usage
+      die 0
+      ;;
+    *)
+      usage 1>&2
+      die 1
+      ;;
+  esac
+done
+shift "$((OPTIND-1))"
+
+if (( $# < 1 )); then
+  usage 1>&2
+  die 1
+fi
+
+COMMAND="$1"
+shift
+
+BORG_CONFIG_FILE="${BORG_CONFIG_FILE:-/etc/borg-backup.conf}"
+# Config file should be available on remote, destination system, not where shellcheck is executed.
+# shellcheck disable=SC1090
+[[ -r "${BORG_CONFIG_FILE}" ]] && source "${BORG_CONFIG_FILE}"
+
+# Check if command consists few commands and we should execute script in recursion.
+if [[ "${COMMAND}" == "create+prune" || "${COMMAND}" == "create+prune+check" || "${COMMAND}" == "prune+check" ]]; then
+  export BORG_ARCHIVE_NAME
+  export BORG_BASE_DIR
+  export BORG_CHECK_I_KNOW_WHAT_I_AM_DOING
+  export BORG_COMPRESSION
+  export BORG_CONFIG_FILE
+  export BORG_DELETE_I_KNOW_WHAT_I_AM_DOING
+  export BORG_ENCRYPTION
+  export BORG_FILES_CACHE_TTL
+  export BORG_HOSTNAME_IS_UNIQUE
+  export BORG_KEEP_DAILY
+  export BORG_KEEP_HOURLY
+  export BORG_KEEP_MONTHLY
+  export BORG_KEEP_WEEKLY
+  export BORG_KEEP_WITHIN
+  export BORG_KEEP_YEARLY
+  export BORG_KEY_FILE
+  export BORG_LOGGING_CONF
+  export BORG_LOG_FILE
+  export BORG_OPTIONS_CREATE
+  export BORG_OPTIONS_PRUNE
+  export BORG_PASSPHRASE
+  export BORG_PATHS
+  export BORG_RECREATE_I_KNOW_WHAT_I_AM_DOING
+  export BORG_RELOCATED_REPO_ACCESS_IS_OK
+  export BORG_REMOTE_PATH
+  export BORG_REPO
+  export BORG_RSH
+  export BORG_UNKNOWN_UNENCRYPTED_REPO_ACCESS_IS_OK
+  export TMPDIR
+
+  case "${COMMAND}" in
+    create+prune)
+      "${BASH_SOURCE[0]}" -c "${BORG_CONFIG_FILE}" create "$@" && "${BASH_SOURCE[0]}" -c "${BORG_CONFIG_FILE}" prune "$@"
+      RET=$?
+      ;;
+    create+prune+check)
+      "${BASH_SOURCE[0]}" -c "${BORG_CONFIG_FILE}" create "$@" && "${BASH_SOURCE[0]}" -c "${BORG_CONFIG_FILE}" prune "$@" && "${BASH_SOURCE[0]}" -c "${BORG_CONFIG_FILE}" check "$@"
+      RET=$?
+      ;;
+    prune+check)
+      "${BASH_SOURCE[0]}" -c "${BORG_CONFIG_FILE}" prune "$@" && "${BASH_SOURCE[0]}" -c "${BORG_CONFIG_FILE}" check "$@"
+      RET=$?
+      ;;
+  esac
+  die "${RET}"
+fi
+
+if [[ ! -v BORG_PATHS ]]; then
+  BORG_PATHS=()
+fi
+
+if [[ ! -v BORG_REPO || ! -v BORG_PASSPHRASE ]]; then
+  usage
+  die 2
+fi
+
+if [[ "${COMMAND}" == "get-key" && $# -gt 1 ]]; then
+  usage
+  die 2
+fi
+
+if [[ "${COMMAND}" == "create" && $# -lt 1 && ${#BORG_PATHS[@]} -eq 0 ]]; then
+  usage
+  die 2
+fi
+
+if [[ "${COMMAND}" == "delete" && $# -lt 1 ]]; then
+  usage
+  die 2
+fi
+
+if [[ "${COMMAND}" == "extract" && $# -lt 1 ]]; then
+  usage
+  die 2
+fi
+
+if [[ "${COMMAND}" == "recreate" && $# -lt 1 ]]; then
+  usage
+  die 2
+fi
+
+# Defaults
+BORG_ARCHIVE_NAME="${BORG_ARCHIVE_NAME:-{now:%Y-%m-%dT%H:%M:%S}}"
+if [[ ! -v BORG_OPTIONS_CREATE ]]; then
+  BORG_OPTIONS_CREATE=()
+fi
+BORG_COMPRESSION="${BORG_COMPRESSION:-lz4}"
+BORG_ENCRYPTION="${BORG_ENCRYPTION:-repokey-blake2}"
+
+BORG_LOG_FILE="${BORG_LOG_FILE:-$(date +%y%m%d-%H%M%S)-${BORG_REPO##*/}-${COMMAND}.log}"
+if [[ -v BORG_BASE_DIR ]]; then
+  BORG_LOG_DIR="${BORG_LOG_DIR:-${BORG_BASE_DIR}/logs}"
+  BORG_LOG="${BORG_LOG_DIR}/${BORG_LOG_FILE}"
+
+  if [[ ! -d "${BORG_LOG_DIR}" ]]; then
+    # We're aware that when used with -p, -m only applies to the deepest directory.
+    # shellcheck disable=SC2174
+    mkdir -m 700 -p "${BORG_LOG_DIR}"
+  fi
+
+  BORG_CONFIG_DIR="${BORG_CONFIG_DIR:-${BORG_BASE_DIR}/config}"
+  BORG_CACHE_DIR="${BORG_CACHE_DIR:-${BORG_BASE_DIR}/cache}"
+  BORG_SECURITY_DIR="${BORG_SECURITY_DIR:-${BORG_BASE_DIR}/security}"
+  BORG_KEYS_DIR="${BORG_KEYS_DIR:-${BORG_BASE_DIR}/keys}"
+else
+  if [[ -v BORG_LOG_DIR ]]; then
+    BORG_LOG="${BORG_LOG_DIR}/${BORG_LOG_FILE}"
+
+    if [[ ! -d "${BORG_LOG_DIR}" ]]; then
+      # We're aware that when used with -p, -m only applies to the deepest directory.
+      # shellcheck disable=SC2174
+      mkdir -m 700 -p "${BORG_LOG_DIR}"
+    fi
+  else
+    BORG_LOG="/dev/null"
+  fi
+fi
+
+if [[ ! -v BORG_OPTIONS_PRUNE ]]; then
+  BORG_OPTIONS_PRUNE=()
+fi
+if [[ -v BORG_KEEP_WITHIN ]]; then
+  BORG_OPTIONS_PRUNE+=("--keep-within=${BORG_KEEP_WITHIN}")
+else
+  BORG_KEEP_YEARLY="${BORG_KEEP_YEARLY:-5}"
+  BORG_KEEP_MONTHLY="${BORG_KEEP_MONTHLY:-24}"
+  BORG_KEEP_WEEKLY="${BORG_KEEP_WEEKLY:-52}"
+  BORG_KEEP_DAILY="${BORG_KEEP_DAILY:-30}"
+  BORG_KEEP_HOURLY="${BORG_KEEP_HOURLY:-168}"
+  BORG_OPTIONS_PRUNE+=("--keep-hourly=${BORG_KEEP_HOURLY}")
+  BORG_OPTIONS_PRUNE+=("--keep-daily=${BORG_KEEP_DAILY}")
+  BORG_OPTIONS_PRUNE+=("--keep-weekly=${BORG_KEEP_WEEKLY}")
+  BORG_OPTIONS_PRUNE+=("--keep-monthly=${BORG_KEEP_MONTHLY}")
+  BORG_OPTIONS_PRUNE+=("--keep-yearly=${BORG_KEEP_YEARLY}")
+fi
+TIMEFORMAT='
+Duration: %3lR'
+
+# General
+export BORG_REPO
+export BORG_PASSPHRASE
+
+[[ -v BORG_HOSTNAME_IS_UNIQUE ]] && export BORG_HOSTNAME_IS_UNIQUE
+[[ -v BORG_LOGGING_CONF ]] && export BORG_LOGGING_CONF
+[[ -v BORG_RSH ]] && export BORG_RSH
+[[ -v BORG_REMOTE_PATH ]] && export BORG_REMOTE_PATH
+[[ -v BORG_FILES_CACHE_TTL ]] && export BORG_FILES_CACHE_TTL
+
+# Some automatic "answers" (if set, they automatically answer confirmation questions)
+[[ -v BORG_UNKNOWN_UNENCRYPTED_REPO_ACCESS_IS_OK ]] && export BORG_UNKNOWN_UNENCRYPTED_REPO_ACCESS_IS_OK
+[[ -v BORG_RELOCATED_REPO_ACCESS_IS_OK ]] && export BORG_RELOCATED_REPO_ACCESS_IS_OK
+[[ -v BORG_CHECK_I_KNOW_WHAT_I_AM_DOING ]] && export BORG_CHECK_I_KNOW_WHAT_I_AM_DOING
+[[ -v BORG_DELETE_I_KNOW_WHAT_I_AM_DOING ]] && export BORG_DELETE_I_KNOW_WHAT_I_AM_DOING
+[[ -v BORG_RECREATE_I_KNOW_WHAT_I_AM_DOING ]] && export BORG_RECREATE_I_KNOW_WHAT_I_AM_DOING
+
+# Directories and files
+[[ -v BORG_BASE_DIR ]] && export BORG_BASE_DIR
+[[ -v BORG_CACHE_DIR ]] && export BORG_CACHE_DIR
+[[ -v BORG_CONFIG_DIR ]] && export BORG_CONFIG_DIR
+[[ -v BORG_SECURITY_DIR ]] && export BORG_SECURITY_DIR
+[[ -v BORG_KEYS_DIR ]] && export BORG_KEYS_DIR
+[[ -v BORG_KEY_FILE ]] && export BORG_KEY_FILE
+[[ -v TMPDIR ]] && export TMPDIR
+
+case "${COMMAND}" in
+  break-lock)
+    BORG=(
+      break-lock
+      --show-rc
+      )
+    ;;
+  get-key)
+    BORG=()
+    ;;
+  compact)
+    BORG=(
+      compact
+      --show-rc
+      )
+    ;;
+  create)
+    BORG=(
+      create
+      --show-rc
+      --stats
+      --compression "${BORG_COMPRESSION}"
+      --exclude lost+found
+      --exclude-caches
+      --exclude-if-present .NOBACKUP
+      --keep-exclude-tags
+      --noflags
+      ${BORG_OPTIONS_CREATE[@]+"${BORG_OPTIONS_CREATE[@]}"}
+      "::${BORG_ARCHIVE_NAME}"
+      ${BORG_PATHS[@]+"${BORG_PATHS[@]}"}
+      )
+    ;;
+  check)
+    BORG=(
+      check
+      --show-rc
+      --verbose
+      --progress
+      )
+    ;;
+  delete)
+    BORG=(
+      delete
+      --show-rc
+      --stats
+      )
+    ;;
+  extract)
+    BORG=(
+      extract
+      --show-rc
+      --list
+      --sparse
+      --progress
+      )
+    ;;
+  info)
+    BORG=(
+      info
+      --show-rc
+      )
+    ;;
+  init)
+    BORG=(
+      init
+      --show-rc
+      "--encryption=${BORG_ENCRYPTION}"
+      )
+    ;;
+  list)
+    BORG=(
+      list
+      --show-rc
+      )
+    ;;
+  prune)
+    BORG=(
+      prune
+      --show-rc
+      --stats
+      --list
+      --verbose
+      ${BORG_OPTIONS_PRUNE[@]+"${BORG_OPTIONS_PRUNE[@]}"}
+      )
+    ;;
+  recreate)
+    BORG=(
+      recreate
+      --show-rc
+      --stats
+      --exclude lost+found
+      --exclude-caches
+      --exclude-if-present .NOBACKUP
+      --keep-exclude-tags
+      )
+    ;;
+  with-lock)
+    BORG=(
+      with-lock
+      --show-rc
+      )
+    ;;
+  *) usage 1>&2
+     die 1
+     ;;
+esac
+
+
+if [[ ${#BORG[@]} -ne 0 ]]; then
+  BORG+=("$@")
+  {
+    print "Start: $(date)"
+    print "Borg version: $(borg --version)"
+    print "Environment:"
+    set | grep ^BORG_ | grep -v ^BORG_PASSPHRASE | while read -r v; do print "  ${v}"; done
+    print "  BORG_PASSPHRASE=**PROTECTED**"
+    (IFS=' ' print "Executing: borg" "${BORG[@]}")
+    print
+    time borg "${BORG[@]}" 2>&1 | print
+    RET=$?
+    print "End: $(date)"
+    print "Exit code: $RET"
+  } &> >(tee "${BORG_LOG}")
+else
+  case "${COMMAND}" in
+    get-key)
+      _BORG_KEY_TMPDIR="$(mktemp -d)"
+      set +e
+      borg key export "${BORG_REPO}" "${_BORG_KEY_TMPDIR}/key" 2>&1
+      RET=$?
+      set -e
+
+      install -m 600 /dev/null "${_BORG_KEY_TMPDIR}/info"
+      echo "--------------------------------------------------------------------------------" >> "${_BORG_KEY_TMPDIR}/info"
+      borg info | grep -E '^(Repository ID|Location|Encrypted|Cache|Security dir): ' &>> "${_BORG_KEY_TMPDIR}/info"
+      if [[ -e "${_BORG_KEY_TMPDIR}/key" ]]; then
+        echo "--------------------------------------------------------------------------------" >> "${_BORG_KEY_TMPDIR}/info"
+        cat "${_BORG_KEY_TMPDIR}/key" >> "${_BORG_KEY_TMPDIR}/info"
+      fi
+      echo "--------------------------------------------------------------------------------" >> "${_BORG_KEY_TMPDIR}/info"
+      echo "BORG_PASSPHRASE ${BORG_PASSPHRASE}" >> "${_BORG_KEY_TMPDIR}/info"
+      echo "--------------------------------------------------------------------------------" >> "${_BORG_KEY_TMPDIR}/info"
+      echo >> "${_BORG_KEY_TMPDIR}/info"
+      echo "You will need both BORG_KEY and BORG_PASSPHRASE to access this repo! Store both at safe place(s)." >> "${_BORG_KEY_TMPDIR}/info"
+
+      if [[ $# == 1 && $RET -eq 0 ]]; then
+        mv "${_BORG_KEY_TMPDIR}/info" "${1}"
+      else
+        cat "${_BORG_KEY_TMPDIR}/info"
+      fi
+      ;;
+  esac
+fi
+
+die "${RET}"
