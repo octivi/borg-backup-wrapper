@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Copyright (C) 2018-2023  IMAGIN Sp. z o.o.
+# Copyright (C) 2018-2024  IMAGIN Sp. z o.o.
 # Author: Marcin Engelmann <mengelmann@octivi.com>
 #
 #/ Wrapper for a deduplicating archiver BorgBackup. It simplifies performing
