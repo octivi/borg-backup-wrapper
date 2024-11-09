@@ -399,6 +399,8 @@ case "${COMMAND}" in
       recreate
       --show-rc
       --stats
+      --compression "${BORG_COMPRESSION}"
+      --recompress
       --exclude lost+found
       --exclude-caches
       --exclude-if-present .NOBACKUP
