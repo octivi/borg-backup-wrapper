@@ -221,11 +221,6 @@ if [[ "${COMMAND}" == "extract" && $# -lt 1 ]]; then
   die 2
 fi
 
-if [[ "${COMMAND}" == "recreate" && $# -lt 1 ]]; then
-  usage
-  die 2
-fi
-
 # Defaults
 BORG_ARCHIVE_NAME="${BORG_ARCHIVE_NAME:-{now:%Y-%m-%dT%H:%M:%S}}"
 if [[ ! -v BORG_OPTIONS_CREATE ]]; then
