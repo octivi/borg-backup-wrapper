@@ -39,7 +39,7 @@
 #/   - BORG_PASSPHRASE - the passphrase for encrypted repository
 #/
 #/ Optional environmental variables:
-#/   - BORG_OPTIONS_CREATE - array of additional options to 'create' command, defaults to () (empty array)
+#/   - BORG_OPTIONS_CREATE - array of additional options to 'create' and 'recreate' commands, defaults to () (empty array)
 #/   - BORG_OPTIONS_PRUNE - array of additional options to 'prune' command, defaults to () (empty array)
 #/   - BORG_COMPRESSION - defaults to 'lz4'
 #/   - BORG_ENCRYPTION - defaults to 'repokey-blake2'
@@ -400,6 +400,7 @@ case "${COMMAND}" in
       --exclude-caches
       --exclude-if-present .NOBACKUP
       --keep-exclude-tags
+      ${BORG_OPTIONS_CREATE[@]+"${BORG_OPTIONS_CREATE[@]}"}
       )
     ;;
   with-lock)
