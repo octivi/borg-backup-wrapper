@@ -2,10 +2,9 @@
 
 [![license](https://img.shields.io/github/license/octivi/borg-backup-wrapper)](https://choosealicense.com/licenses/mit/)
 
-`borg-backup-wrapper` is a wrapper for a deduplicating archiver [BorgBackup](https://www.borgbackup.org/). It simplifies
-performing everyday tasks on multiply repositories.
+`borg-backup-wrapper` is a wrapper for the  deduplicating archiver [BorgBackup](https://www.borgbackup.org/), designed to simplify everyday tasks across multiple repositories.
 
-BorgBackup is amazing deduplicating archiver with compression and encryption.
+BorgBackup is an excellent archiver offering deduplication, compression, and encryption.
 
 ## Install
 
@@ -18,7 +17,7 @@ BorgBackup is amazing deduplicating archiver with compression and encryption.
    ```
 
 2. Fetch raw [`borg-backup`](https://github.com/octivi/borg-backup-wrapper/blob/main/borg-backup) script, save it as
-   `/usr/local/bin/borg-backup` and add execute (x) permission:
+   `/usr/local/bin/borg-backup` and grant execution (x) permissions:
 
    ```bash
    curl -L https://raw.githubusercontent.com/octivi/borg-backup-wrapper/main/borg-backup | sudo tee /usr/local/bin/borg-backup > /dev/null
