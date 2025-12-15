@@ -1,0 +1,52 @@
+---
+# SPDX-FileCopyrightText: 2025  IMAGIN sp. z o.o.
+# SPDX-FileContributor: Marcin Engelmann <mengelmann@octivi.com>
+# SPDX-License-Identifier: MIT
+#
+# This file is part of the configuration created by Octivi's DevOps team.
+# Details at https://octivi.com/devops
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Create release
+    runs-on: ubuntu-latest
+    env:
+      ORG_NAME: ${{ github.event.repository.owner.login }}
+      REPO_NAME: ${{ github.event.repository.name }}
+      TAG_NAME: ${{ github.ref_name }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0 # required so the tag that triggered the workflow is available
+
+      - name: Generate SHA256 checksum
+        run: |
+          sha256sum borg-backup > borg-backup.sha256"
+
+      - name: Publish release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            ./borg-backup
+            ./borg-backup.sha256
+          body: |
+            ## Install
+
+            ```
+            sudo curl -fL -o /usr/local/bin/borg-backup https://github.com/${{ env.ORG_NAME }}/${{ env.REPO_NAME }}/releases/download/${{ env.TAG_NAME }}/borg-backup
+            sudo chmod +x /usr/local/bin/borg-backup
+            ```
+          generate_release_notes: true
+          fail_on_unmatched_files: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
