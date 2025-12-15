@@ -1,3 +1,10 @@
+---
+# SPDX-FileCopyrightText: 2023-2025  IMAGIN sp. z o.o.
+# SPDX-FileContributor: Marcin Engelmann <mengelmann@octivi.com>
+# SPDX-License-Identifier: MIT
+#
+# This file is part of the configuration created by Octivi's DevOps team.
+# Details at https://octivi.com/devops
 name: Tests
 
 on:
@@ -9,7 +16,8 @@ jobs:
     name: ShellCheck
     runs-on: ubuntu-latest
     steps:
-      - name: Check out repository code
-        uses: actions/checkout@v4
-      - name: Run ShellCheck
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Run Shellcheck
         uses: ludeeus/action-shellcheck@2.0.0
