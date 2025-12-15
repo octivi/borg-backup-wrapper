@@ -31,7 +31,7 @@ jobs:
 
       - name: Generate SHA256 checksum
         run: |
-          sha256sum borg-backup > borg-backup.sha256"
+          sha256sum borg-backup > borg-backup.sha256
 
       - name: Publish release
         uses: softprops/action-gh-release@v2
