@@ -7,12 +7,57 @@ that streamlines everyday tasks across multiple repositories
 
 BorgBackup is an excellent archiver offering deduplication, compression, and encryption.
 
-## Install
+## Installation
 
-1. This wrapper requires [Octivi Bash Boilerplate (OBB)](https://github.com/octivi/bash-boilerplate)
+### Manual
 
-2. Fetch [`borg-backup`](https://github.com/octivi/borg-backup-wrapper/) script, save it as
-   `/usr/local/bin/borg-backup` and grant execution (x) permissions:
+Just download [Octivi Bash Boilerplate (OBB)](https://github.com/octivi/bash-boilerplate)
+and `borg-backup-wrapper` and grant execution (x) permission to `borg-backup`
+
+```
+# or https://github.com/octivi/bash-boilerplate/releases/latest/download/octivi-bash-boilerplate if you want always latest release
+sudo curl -fL -o /usr/local/share/octivi-bash-boilerplate https://github.com/octivi/bash-boilerplate/releases/download/v1.0.0/octivi-bash-boilerplate
+
+# or https://github.com/octivi/borg-backup-wrapper/releases/latest/download/borg-backup
+sudo curl -fL -o /usr/local/bin/borg-backup-wrapper https://github.com/octivi/borg-backup-wrapper/releases/download/v1.0.0/borg-backup
+sudo chmod +x /usr/local/bin/borg-backup
+```
+
+### Ansible
+
+Two simple tasks to install `borg-backup-wrapper`
+
+```
+- name: 'Install Octivi Bash Boilerplate (OBB)'
+  ansible.builtin.get_url:
+    # or https://github.com/octivi/bash-boilerplate/releases/latest/download/octivi-bash-boilerplate if you want always latest release
+    url: 'https://github.com/octivi/bash-boilerplate/releases/download/v1.0.0/octivi-bash-boilerplate'
+    dest: '/usr/local/share/bash-boilerplate'
+    owner: 'root'
+    group: 'root'
+    mode: '0644'
+    # or https://github.com/octivi/bash-boilerplate/releases/latest/download/octivi-bash-boilerplate.sha256 if you want always latest release
+    checksum: 'sha256:https://github.com/octivi/bash-boilerplate/releases/download/v1.0.0/octivi-bash-boilerplate.sha256'
+  register: '__bash_boilerplate_download'
+  until: __bash_boilerplate_download is succeeded
+  retries: 5
+  delay: 2
+
+- name: 'Install Borg Backup Wrapper'
+  ansible.builtin.get_url:
+    # or https://github.com/octivi/borg-backup-wrapper/releases/latest/download/borg-backup if you want always latest release
+    url: 'https://github.com/octivi/borg-backup-wrapper/releases/download/v1.0.0/borg-backup'
+    dest: '/usr/local/bin/borg-backup'
+    owner: 'root'
+    group: 'root'
+    mode: '0755'
+    # or https://github.com/octivi/borg-backup-wrapper/releases/latest/download/borg-backup.sha256 if you want always latest release
+    checksum: 'sha256:https://github.com/octivi/borg-backup-wrapper/releases/download/v1.0.0/borg-backup.sha256'
+  register: '__borg_backup_wrapper_download'
+  until: __borg_backup_wrapper_download is succeeded
+  retries: 5
+  delay: 2
+```
 
 ## Alternatives
 
