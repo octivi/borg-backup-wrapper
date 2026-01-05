@@ -1,7 +1,7 @@
 #!/bin/bash
-#
-# Copyright (C) 2018-2024  IMAGIN Sp. z o.o.
-# Author: Marcin Engelmann <mengelmann@octivi.com>
+# SPDX-FileCopyrightText: 2018-2025  IMAGIN sp. z o.o.
+# SPDX-FileContributor: Marcin Engelmann <mengelmann@octivi.com>
+# SPDX-License-Identifier: MIT
 #
 #/ Wrapper for a deduplicating archiver BorgBackup. It simplifies performing
 #/ everyday tasks on multiply repositories.
