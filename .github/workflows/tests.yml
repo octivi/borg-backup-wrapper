@@ -1,5 +1,5 @@
 ---
-# SPDX-FileCopyrightText: 2023-2026  IMAGIN sp. z o.o.
+# SPDX-FileCopyrightText: 2018-2026  IMAGIN sp. z o.o.
 # SPDX-FileContributor: Marcin Engelmann <mengelmann@octivi.com>
 # SPDX-License-Identifier: MIT
 #
@@ -16,7 +16,7 @@ jobs:
     name: ShellCheck
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout repository
+      - name: Check out repository code
         uses: actions/checkout@v6
 
       - name: Run Shellcheck
