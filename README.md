@@ -1,6 +1,9 @@
 # BorgBackup Wrapper
 
 [![license](https://img.shields.io/github/license/octivi/borg-backup-wrapper)](https://choosealicense.com/licenses/mit/)
+[![Conventional Commits](https://img.shields.io/badge/Conventional%20Commits-1.0.0-yellow.svg)](https://conventionalcommits.org/)
+[![semver](https://img.shields.io/badge/SemVer-2.0.0-blue)](https://semver.org/spec/v2.0.0.html)
+
 
 `borg-backup-wrapper` is a wrapper around the deduplicating archiver [BorgBackup](https://www.borgbackup.org/)
 that streamlines everyday tasks across multiple repositories
