@@ -22,7 +22,7 @@ and `borg-backup-wrapper` and grant execution (x) permission to `borg-backup`
 sudo curl -fsSLo /usr/local/share/octivi-bash-boilerplate https://github.com/octivi/bash-boilerplate/releases/download/v1.0.0/octivi-bash-boilerplate
 
 # or https://github.com/octivi/borg-backup-wrapper/releases/latest/download/borg-backup
-sudo curl -fsSLo /usr/local/bin/borg-backup-wrapper https://github.com/octivi/borg-backup-wrapper/releases/download/v1.0.0/borg-backup
+sudo curl -fsSLo /usr/local/bin/borg-backup https://github.com/octivi/borg-backup-wrapper/releases/download/v1.0.0/borg-backup
 sudo chmod +x /usr/local/bin/borg-backup
 ```
 
