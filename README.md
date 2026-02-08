@@ -14,16 +14,30 @@ BorgBackup is an excellent archiver offering deduplication, compression, and enc
 
 ### Manual
 
-Just download [Octivi Bash Boilerplate (OBB)](https://github.com/octivi/bash-boilerplate)
-and `borg-backup-wrapper` and grant execution (x) permission to `borg-backup`
+Download both required files and verify their checksums before installation.
 
 ```
-# or https://github.com/octivi/bash-boilerplate/releases/latest/download/octivi-bash-boilerplate if you want always latest release
-sudo curl -fsSLo /usr/local/share/octivi-bash-boilerplate https://github.com/octivi/bash-boilerplate/releases/download/v1.0.0/octivi-bash-boilerplate
+# Replace v1.0.0 with /latest/download/ URLs if you want the latest release.
+tmp_dir="$(mktemp -d)"
+trap 'rm -rf "${tmp_dir}"' EXIT
 
-# or https://github.com/octivi/borg-backup-wrapper/releases/latest/download/borg-backup
-sudo curl -fsSLo /usr/local/bin/borg-backup https://github.com/octivi/borg-backup-wrapper/releases/download/v1.0.0/borg-backup
-sudo chmod +x /usr/local/bin/borg-backup
+curl -fsSLo "${tmp_dir}/octivi-bash-boilerplate" \
+  "https://github.com/octivi/bash-boilerplate/releases/download/v1.0.0/octivi-bash-boilerplate"
+curl -fsSLo "${tmp_dir}/octivi-bash-boilerplate.sha256" \
+  "https://github.com/octivi/bash-boilerplate/releases/download/v1.0.0/octivi-bash-boilerplate.sha256"
+curl -fsSLo "${tmp_dir}/borg-backup" \
+  "https://github.com/octivi/borg-backup-wrapper/releases/download/v1.0.0/borg-backup"
+curl -fsSLo "${tmp_dir}/borg-backup.sha256" \
+  "https://github.com/octivi/borg-backup-wrapper/releases/download/v1.0.0/borg-backup.sha256"
+
+(
+  cd "${tmp_dir}"
+  sha256sum -c octivi-bash-boilerplate.sha256
+  sha256sum -c borg-backup.sha256
+)
+
+sudo install -m 0644 "${tmp_dir}/octivi-bash-boilerplate" /usr/local/share/octivi-bash-boilerplate
+sudo install -m 0755 "${tmp_dir}/borg-backup" /usr/local/bin/borg-backup
 ```
 
 ### Ansible
