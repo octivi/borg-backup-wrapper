@@ -4,9 +4,8 @@
 [![Conventional Commits](https://img.shields.io/badge/Conventional%20Commits-1.0.0-yellow.svg)](https://conventionalcommits.org/)
 [![semver](https://img.shields.io/badge/SemVer-2.0.0-blue)](https://semver.org/spec/v2.0.0.html)
 
-
 `borg-backup-wrapper` is a wrapper around the deduplicating archiver [BorgBackup](https://www.borgbackup.org/)
-that streamlines everyday tasks across multiple repositories
+that streamlines everyday tasks across multiple repositories.
 
 BorgBackup is an excellent archiver offering deduplication, compression, and encryption.
 
@@ -49,14 +48,14 @@ sudo install -m 0755 "${tmp_dir}/borg-backup" /usr/local/bin/borg-backup
 
 ### Ansible
 
-Two simple tasks to install `borg-backup-wrapper`
+Two simple tasks to install `borg-backup-wrapper`.
 
 ```
 - name: 'Install Octivi Bash Boilerplate (OBB)'
   ansible.builtin.get_url:
     # or https://github.com/octivi/bash-boilerplate/releases/latest/download/octivi-bash-boilerplate if you want always latest release
     url: 'https://github.com/octivi/bash-boilerplate/releases/download/v1.0.0/octivi-bash-boilerplate'
-    dest: '/usr/local/share/bash-boilerplate'
+    dest: '/usr/local/share/octivi-bash-boilerplate'
     owner: 'root'
     group: 'root'
     mode: '0644'
