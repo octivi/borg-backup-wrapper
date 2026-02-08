@@ -10,6 +10,13 @@ that streamlines everyday tasks across multiple repositories
 
 BorgBackup is an excellent archiver offering deduplication, compression, and encryption.
 
+## Requirements
+
+- Bash 4.4 or newer.
+- `borg` installed and available in `PATH`.
+- [Octivi Bash Boilerplate (OBB)](https://github.com/octivi/bash-boilerplate) installed at `/usr/local/share/octivi-bash-boilerplate`
+  or available via `OBB_LIB_PATH`.
+
 ## Installation
 
 ### Manual
