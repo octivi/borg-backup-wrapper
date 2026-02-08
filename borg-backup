@@ -39,6 +39,7 @@
 #/   - BORG_PASSPHRASE - the passphrase for encrypted repository
 #/
 #/ Optional environmental variables:
+#/   - OBB_LIB_PATH - path to Octivi Bash Boilerplate library, defaults to '/usr/local/share/octivi-bash-boilerplate'
 #/   - BORG_OPTIONS_CREATE - array of additional options to 'create' and 'recreate' commands, defaults to () (empty array)
 #/   - BORG_OPTIONS_PRUNE - array of additional options to 'prune' command, defaults to () (empty array)
 #/   - BORG_COMPRESSION - defaults to 'lz4'
@@ -79,8 +80,13 @@ readonly __my_args
 # Set IFS to just newline and tab
 IFS=$'\n\t'
 # Include Octivi Bash Boilerplate (OBB) Library
+OBB_LIB_PATH="${OBB_LIB_PATH:-/usr/local/share/octivi-bash-boilerplate}"
+if [[ ! -r "${OBB_LIB_PATH}" ]]; then
+  printf "Cannot read Octivi Bash Boilerplate library at '%s'. Set OBB_LIB_PATH to a valid path.\n" "${OBB_LIB_PATH}" >&2
+  exit 2
+fi
 # shellcheck source=/dev/null
-source "/usr/local/share/octivi-bash-boilerplate"
+source "${OBB_LIB_PATH}"
 ################################################################################
 
 
