@@ -183,16 +183,25 @@ if [[ "${COMMAND}" == "create+prune" || "${COMMAND}" == "create+prune+check" || 
 
   case "${COMMAND}" in
     create+prune)
-      "${BASH_SOURCE[0]}" -c "${BORG_CONFIG_FILE}" create "$@" && "${BASH_SOURCE[0]}" -c "${BORG_CONFIG_FILE}" prune "$@"
-      RET=$?
+      if "${BASH_SOURCE[0]}" -c "${BORG_CONFIG_FILE}" create "$@" && "${BASH_SOURCE[0]}" -c "${BORG_CONFIG_FILE}" prune "$@"; then
+        RET=0
+      else
+        RET=$?
+      fi
       ;;
     create+prune+check)
-      "${BASH_SOURCE[0]}" -c "${BORG_CONFIG_FILE}" create "$@" && "${BASH_SOURCE[0]}" -c "${BORG_CONFIG_FILE}" prune "$@" && "${BASH_SOURCE[0]}" -c "${BORG_CONFIG_FILE}" check "$@"
-      RET=$?
+      if "${BASH_SOURCE[0]}" -c "${BORG_CONFIG_FILE}" create "$@" && "${BASH_SOURCE[0]}" -c "${BORG_CONFIG_FILE}" prune "$@" && "${BASH_SOURCE[0]}" -c "${BORG_CONFIG_FILE}" check "$@"; then
+        RET=0
+      else
+        RET=$?
+      fi
       ;;
     prune+check)
-      "${BASH_SOURCE[0]}" -c "${BORG_CONFIG_FILE}" prune "$@" && "${BASH_SOURCE[0]}" -c "${BORG_CONFIG_FILE}" check "$@"
-      RET=$?
+      if "${BASH_SOURCE[0]}" -c "${BORG_CONFIG_FILE}" prune "$@" && "${BASH_SOURCE[0]}" -c "${BORG_CONFIG_FILE}" check "$@"; then
+        RET=0
+      else
+        RET=$?
+      fi
       ;;
   esac
   die "${RET}"
@@ -431,8 +440,11 @@ if [[ ${#BORG[@]} -ne 0 ]]; then
     print "  BORG_PASSPHRASE=**PROTECTED**"
     (IFS=' ' print "Executing: borg" "${BORG[@]}")
     print
-    time borg "${BORG[@]}" 2>&1 | print
-    RET=$?
+    if time borg "${BORG[@]}"; then
+      RET=0
+    else
+      RET=$?
+    fi
     print "End: $(date)"
     print "Exit code: $RET"
   } &> >(tee "${BORG_LOG}")
@@ -447,7 +459,9 @@ else
 
       install -m 600 /dev/null "${_BORG_KEY_TMPDIR}/info"
       echo "--------------------------------------------------------------------------------" >> "${_BORG_KEY_TMPDIR}/info"
-      borg info | grep -E '^(Repository ID|Location|Encrypted|Cache|Security dir): ' &>> "${_BORG_KEY_TMPDIR}/info"
+      if ! borg info | grep -E '^(Repository ID|Location|Encrypted|Cache|Security dir): ' &>> "${_BORG_KEY_TMPDIR}/info"; then
+        :
+      fi
       if [[ -e "${_BORG_KEY_TMPDIR}/key" ]]; then
         echo "--------------------------------------------------------------------------------" >> "${_BORG_KEY_TMPDIR}/info"
         cat "${_BORG_KEY_TMPDIR}/key" >> "${_BORG_KEY_TMPDIR}/info"
