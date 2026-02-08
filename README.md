@@ -62,6 +62,48 @@ Two simple tasks to install `borg-backup-wrapper`
   delay: 2
 ```
 
+## Quick start
+
+Example `borg-backup` configuration file:
+
+```
+# /etc/borg-backup.conf
+BORG_REPO="ssh://backup@example.com:22/./repo-hostname"
+BORG_PASSPHRASE="replace-with-a-strong-passphrase"
+
+BORG_BASE_DIR="/var/lib/borg-backup"
+BORG_ARCHIVE_NAME="{hostname}-{now:%Y-%m-%dT%H:%M:%S}"
+BORG_COMPRESSION="zstd,6"
+
+BORG_KEEP_YEARLY=5
+BORG_KEEP_MONTHLY=24
+BORG_KEEP_WEEKLY=52
+BORG_KEEP_DAILY=30
+BORG_KEEP_HOURLY=168
+
+BORG_PATHS=(
+  "/etc"
+  "/home"
+  "/var/www"
+)
+
+BORG_OPTIONS_CREATE=(
+  "--one-file-system"
+  "--exclude=/proc"
+  "--exclude=/sys"
+  "--exclude=/dev"
+  "--exclude=/run"
+  "--exclude=/tmp"
+)
+```
+
+Initialize a repository, then run a normal backup cycle:
+
+```
+sudo borg-backup -c /etc/borg-backup.conf init
+sudo borg-backup -c /etc/borg-backup.conf create+prune+check
+```
+
 ## Alternatives
 
 - [Borgmatic](https://github.com/borgmatic-collective/borgmatic)
