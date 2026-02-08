@@ -15,7 +15,7 @@ Preferred: use [GitHub Security Advisories](https://github.com/octivi/borg-backu
 for this repository (private disclosure).
 
 If [GitHub Security Advisories](https://github.com/octivi/borg-backup-wrapper/security/advisories)
-are not available, [open a new issue](https://github.com/octivi/borg-backup-wrapper/security/advisories)
+are not available, [open a new issue](https://github.com/octivi/borg-backup-wrapper/issues/new)
 and clearly mark it as **security** in the title, or contact
 [the maintainers](https://github.com/orgs/octivi/people).
 
