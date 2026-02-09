@@ -52,8 +52,9 @@ jobs:
             ## Install
 
             ```bash
-            sudo curl -fsSLo /usr/local/bin/borg-backup https://github.com/${{ env.ORG_NAME }}/${{ env.REPO_NAME }}/releases/download/${{ env.TAG_NAME }}/borg-backup
-            sudo chmod +x /usr/local/bin/borg-backup
+            curl -fsSLO "https://github.com/${{ env.ORG_NAME }}/${{ env.REPO_NAME }}/releases/download/${{ env.TAG_NAME }}/borg-backup"
+            curl -fsSL "https://github.com/${{ env.ORG_NAME }}/${{ env.REPO_NAME }}/releases/download/${{ env.TAG_NAME }}/borg-backup.sha256" | sha256sum -c -
+            sudo install -m 0755 borg-backup /usr/local/bin/borg-backup
             ```
           generate_release_notes: true
           fail_on_unmatched_files: true
