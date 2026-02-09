@@ -22,7 +22,7 @@ BorgBackup is an excellent archiver offering deduplication, compression, and enc
 
 Download both required files and verify their checksums before installation.
 
-```
+```bash
 # Replace v1.0.0 with /latest/download/ URLs if you want the latest release.
 tmp_dir="$(mktemp -d)"
 trap 'rm -rf "${tmp_dir}"' EXIT
@@ -50,7 +50,7 @@ sudo install -m 0755 "${tmp_dir}/borg-backup" /usr/local/bin/borg-backup
 
 Two simple tasks to install `borg-backup-wrapper`.
 
-```
+```yaml
 - name: 'Install Octivi Bash Boilerplate (OBB)'
   ansible.builtin.get_url:
     # or https://github.com/octivi/bash-boilerplate/releases/latest/download/octivi-bash-boilerplate if you want always latest release
@@ -86,7 +86,7 @@ Two simple tasks to install `borg-backup-wrapper`.
 
 Example `borg-backup` configuration file:
 
-```
+```bash
 # /etc/borg-backup.conf
 BORG_REPO="ssh://backup@example.com:22/./repo-hostname"
 BORG_PASSPHRASE="replace-with-a-strong-passphrase"
@@ -119,7 +119,7 @@ BORG_OPTIONS_CREATE=(
 
 Initialize a repository, then run a normal backup cycle:
 
-```
+```bash
 sudo borg-backup -c /etc/borg-backup.conf init
 sudo borg-backup -c /etc/borg-backup.conf create+prune+check
 ```

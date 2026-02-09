@@ -51,7 +51,7 @@ jobs:
           body: |
             ## Install
 
-            ```
+            ```bash
             sudo curl -fsSLo /usr/local/bin/borg-backup https://github.com/${{ env.ORG_NAME }}/${{ env.REPO_NAME }}/releases/download/${{ env.TAG_NAME }}/borg-backup
             sudo chmod +x /usr/local/bin/borg-backup
             ```
