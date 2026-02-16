@@ -108,11 +108,8 @@ function cleanup() {
 
 # ------------------------------------------------------------------------------
 # Clean up on script exit.
-trap cleanup EXIT
-
-# Requirements
-require_bash_version 4 4 || die 2 "At least Bash 4.4 is required"
-require_command borg || die 2 "Cannot find 'borg'. Install from https://github.com/borgbackup/borg/releases"
+function main() {
+  trap cleanup EXIT
 
 while getopts :c:h opt; do
   case $opt in
@@ -133,11 +130,14 @@ shift "$((OPTIND-1))"
 
 if (( $# < 1 )); then
   usage 1>&2
-  die 1
+  die 2
 fi
 
 COMMAND="$1"
 shift
+
+# Requirements
+require_command borg || die 2 "Cannot find 'borg'. Install from https://github.com/borgbackup/borg/releases"
 
 BORG_CONFIG_FILE="${BORG_CONFIG_FILE:-/etc/borg-backup.conf}"
 # Config file should be available on remote, destination system, not where shellcheck is executed.
