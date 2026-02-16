@@ -61,11 +61,14 @@
 #/   - BORG_PATHS - array paths to archive, defaults to () (empty array)
 #/   - and others, see http://borgbackup.readthedocs.io/en/stable/man_intro.html#environment-variables
 
+# >>> OBB:BEGIN variant=header
+################################################################################
 # Octivi Bash Boilerplate (OBB) Header
+# Part of Octivi Bash Boilerplate https://github.com/octivi/bash-boilerplate
 ################################################################################
 # Unofficial Bash "Strict Mode"
 # http://redsymbol.net/articles/unofficial-bash-strict-mode/
-set -o errexit -o nounset -o pipefail
+set -euo pipefail
 # Define common constants regardless if they are used in the script
 __my_name="$(basename "${BASH_SOURCE[0]}")"
 readonly __my_name
@@ -79,16 +82,8 @@ __my_args="$*"
 readonly __my_args
 # Set IFS to just newline and tab
 IFS=$'\n\t'
-# Include Octivi Bash Boilerplate (OBB) Library
-OBB_LIB_PATH="${OBB_LIB_PATH:-/usr/local/share/octivi-bash-boilerplate}"
-if [[ ! -r "${OBB_LIB_PATH}" ]]; then
-  printf "Cannot read Octivi Bash Boilerplate library at '%s'. Set OBB_LIB_PATH to a valid path.\n" "${OBB_LIB_PATH}" >&2
-  exit 2
-fi
-# shellcheck source=/dev/null
-source "${OBB_LIB_PATH}"
 ################################################################################
-
+# <<< OBB:END
 
 ################################################################################
 # Clean up temporary files on script exit.
@@ -482,3 +477,310 @@ else
 fi
 
 die "${RET}"
+}
+
+# >>> OBB:BEGIN variant=full source=local version=local
+# SPDX-FileCopyrightText: 2016-2026  IMAGIN sp. z o.o.
+# SPDX-FileContributor: Marcin Engelmann <mengelmann@octivi.com>
+# SPDX-License-Identifier: MIT
+#
+# Part of Octivi Bash Boilerplate https://github.com/octivi/bash-boilerplate
+#
+# Specify the shell for ShellCheck since we do not use a shebang here
+# shellcheck shell=bash
+
+################################################################################
+# Define colors and formatting
+#
+# Define colors ANSI 4-bit colors
+#   - https://en.wikipedia.org/wiki/ANSI_escape_code#Colors
+#   - https://misc.flogisoft.com/bash/tip_colors_and_formatting
+#   - https://stackoverflow.com/questions/5947742/how-to-change-the-output-color-of-echo-in-linux
+#   - https://superuser.com/q/301353
+################################################################################
+
+# \x1b (ESC Escape) is hex equivalent of Bash '\e' that can be used more widely.
+# Foreground                         # Background
+readonly __c_black=$'\x1b[0;30m';    readonly __c_b_black=$'\x1b[0;40m'    #  0. Black
+readonly __c_red=$'\x1b[0;31m';      readonly __c_b_red=$'\x1b[0;41m'      #  1. Red
+readonly __c_green=$'\x1b[0;32m';    readonly __c_b_green=$'\x1b[0;42m'    #  2. Green
+readonly __c_yellow=$'\x1b[0;33m';   readonly __c_b_yellow=$'\x1b[0;43m'   #  3. Yellow
+readonly __c_blue=$'\x1b[0;34m';     readonly __c_b_blue=$'\x1b[0;44m'     #  4. Blue
+readonly __c_magenta=$'\x1b[0;35m';  readonly __c_b_magenta=$'\x1b[0;45m'  #  5. Magenta
+readonly __c_cyan=$'\x1b[0;36m';     readonly __c_b_cyan=$'\x1b[0;46m'     #  6. Cyan
+readonly __c_white=$'\x1b[0;37m';    readonly __c_b_white=$'\x1b[0;47m'    #  7. White
+readonly __c_grey=$'\x1b[1;30m';     readonly __c_b_grey=$'\x1b[1;40m'     #  8. Bright Black (Grey)
+readonly __c_bred=$'\x1b[1;31m';     readonly __c_b_bred=$'\x1b[1;41m'     #  9. Bright Red
+readonly __c_bgreen=$'\x1b[1;32m';   readonly __c_b_bgreen=$'\x1b[1;42m'   # 10. Bright Green
+readonly __c_byellow=$'\x1b[1;33m';  readonly __c_b_byellow=$'\x1b[1;43m'  # 11. Bright Yellow
+readonly __c_bblue=$'\x1b[1;34m';    readonly __c_b_bblue=$'\x1b[1;44m'    # 12. Bright Blue
+readonly __c_bmagenta=$'\x1b[1;35m'; readonly __c_b_bmagenta=$'\x1b[1;45m' # 13. Bright Magenta
+readonly __c_bcyan=$'\x1b[1;36m';    readonly __c_b_bcyan=$'\x1b[1;46m'    # 14. Bright Cyan
+readonly __c_bwhite=$'\x1b[1;37m';   readonly __c_b_bwhite=$'\x1b[1;47m'   # 15. Bright White
+readonly __c_default=$'\x1b[0;39m';  readonly __c_b_default=$'\x1b[0;49m'  # Default color
+
+readonly __c_bld=$'\x1b[1m'     # Bold text
+readonly __c_und=$'\x1b[4m'     # Underline text
+readonly __c_inv=$'\x1b[7m'     # Inverse: swap background and foreground colors
+readonly __c_reg=$'\x1b[22;24m' # Regular text only, keep colors
+readonly __c_rst=$'\x1b[0m'     # Reset all attributes
+
+readonly __c_error="${__c_red}"
+readonly __c_warning="${__c_yellow}"
+readonly __c_ok="${__c_green}"
+
+################################################################################
+# Print help message
+#
+# Usage: usage
+#
+# Outputs: Help message defined in the script code, prefixed with '#/'
+################################################################################
+function usage() {
+  # __my_path is assigned in script that includes this library
+  # shellcheck disable=SC2154
+  printf "%b\n" "$(grep '^#/' "${__my_path}" | cut -c4-)" 1>&2
+}
+
+################################################################################
+# Output current timestamp in ISO 8601 format (2020-02-11T08:56:00+0000) to stdout
+#
+# Usage: now
+#        echo "$(now)"
+#
+# Outputs: timestamp
+################################################################################
+function now() {
+  printf '%(%Y-%m-%dT%H:%M:%S%z)T' -1
+}
+
+################################################################################
+# Read lines from stdin and call a function for each line
+#
+# Usage: __read_stdin_lines <function_name>
+#
+# Outputs: None
+# Returns: 0 when stdin is piped and all calls succeed, 1 otherwise
+################################################################################
+function __read_stdin_lines() {
+  local func="$1" line
+  shift
+  (($# == 0)) && [[ -p /dev/stdin ]] || return 1
+  # No arguments and stdin is opened, so read message from stdin and execute the function for each line
+  while read -r line; do "${func}" "${line}"; done
+}
+
+################################################################################
+# Output timestamp and message to stdout
+#
+# Usage: echo "message to print on stdout" | print
+#        print [message to print on stdout]
+#
+# Outputs: timestamp and message
+################################################################################
+function print() {
+  __read_stdin_lines print "$@" && return
+  printf '%s %b\n' "$(now)" "$*"
+}
+
+################################################################################
+# Print error message to stderr
+#
+# Usage: echo "message to print on stderr" | error
+#        error [message to print on stderr]
+#
+# Outputs: message
+################################################################################
+function error() {
+  __read_stdin_lines error "$@" && return
+  if [[ -z ${NO_COLOR-} || -n ${FORCE_COLOR-} ]]; then print "${__c_error}ERROR: $*${__c_rst}" 1>&2; else print "ERROR: $*" 1>&2; fi
+}
+
+################################################################################
+# Print warning message to stderr
+#
+# Usage: echo "message to print on stderr" | warning
+#        warning [message to print on stderr]
+#
+# Outputs: message
+################################################################################
+function warning() {
+  __read_stdin_lines warning "$@" && return
+  if [[ -z ${NO_COLOR-} || -n ${FORCE_COLOR-} ]]; then print "${__c_warning}WARN: $*${__c_rst}" 1>&2; else print "WARN: $*" 1>&2; fi
+}
+
+################################################################################
+# Print OK message to stdout
+#
+# Usage: echo "message to print on stdout" | ok
+#        ok [message to print on stdout]
+#
+# Outputs: message
+################################################################################
+function ok() {
+  __read_stdin_lines ok "$@" && return
+  if [[ -z ${NO_COLOR-} || -n ${FORCE_COLOR-} ]]; then print "${__c_ok}OK: $*${__c_rst}"; else print "OK: $*"; fi
+}
+
+################################################################################
+# Print a bigger header to stdout
+#
+# Usage: echo "header to print on stdout" | header
+#        header [header to print on stdout]
+#
+# Outputs: header
+################################################################################
+function header() {
+  __read_stdin_lines header "$@" && return
+  print "##########"; print "# $*"; print "##########"
+}
+
+################################################################################
+# Show a rotating spinner on stdout
+#
+# Based on https://mywiki.wooledge.org/BashFAQ/034 and vendored 1-char spinners
+# from https://github.com/sindresorhus/cli-spinners/blob/main/spinners.json
+#
+# Usage: spin [spinner_name, defaults to 'dots'] &
+#        spin_pid=$!
+#        # long-running commands here
+#        kill "${spin_pid}"; wait "${spin_pid}" 2>/dev/null
+#
+# Outputs: spinner animation
+################################################################################
+function spin() {
+  local spinner="${1:-dots}"
+  local i=0
+  local sp=''
+  local n=0
+  local tty_fd=0
+  local locale="${LC_ALL:-${LC_CTYPE:-${LANG:-}}}"
+
+  if [[ ${locale^^} != *UTF-8* && ${locale^^} != *UTF8* ]]; then
+    spinner='line'
+  fi
+
+  case "${spinner}" in
+    dots) sp='⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏' ;;
+    dots2) sp='⣾⣽⣻⢿⡿⣟⣯⣷' ;;
+    sand) sp='⠁⠂⠄⡀⡈⡐⡠⣀⣁⣂⣄⣌⣔⣤⣥⣦⣮⣶⣷⣿⡿⠿⢟⠟⡛⠛⠫⢋⠋⠍⡉⠉⠑⠡⢁' ;;
+    line) sp='-\|/' ;;
+    dqpb) sp='dqpb' ;;
+    *) sp='-\|/' ;;
+  esac
+
+  n=${#sp}
+  printf ' '
+  { exec {tty_fd}</dev/tty; } 2>/dev/null || return 0
+  while :; do
+    printf '\b%s' "${sp:i++%n:1}"
+    IFS= read -r -t 0.1 -u "${tty_fd}" || true
+  done
+}
+
+################################################################################
+# Print an optional message and exit with either the given status or that of the most recent command
+#
+# Based on https://mywiki.wooledge.org/BashFAQ/101
+#
+# Usage: some_command || die [status code] [message to print on exit]
+#        die [status code] [message to print on exit]
+#
+# Outputs: message
+################################################################################
+function die() {
+  # Get the exit code of the most recent command.
+  local ret=$?
+
+  # At least one argument and it is a number, use as an exit code
+  if (( $# > 0 )) && [[ $1 =~ ^[0-9]+$ ]]; then ret="$1"; shift; fi
+
+  # Still at least one argument, use all of them as a message
+  if (( $# > 0 )); then if (( ret != 0 )); then error "$*"; else print "$*"; fi; fi
+  exit "${ret}"
+}
+
+################################################################################
+# Check if this instance of bash version is at least X.Y
+#
+# Usage: require_bash_version [major] [minor]
+#        require_bash_version 4 4 || die 2 "At least Bash 4.4 is required"
+#
+# Returns: 0 if bash version is at least required; 1 if bash version is older
+################################################################################
+function require_bash_version() {
+  (( BASH_VERSINFO[0] > $1 || (BASH_VERSINFO[0] == $1 && BASH_VERSINFO[1] >= $2) ))
+}
+
+################################################################################
+# Check if required command is available
+#
+# Usage: require_command [required command] || die 2 "Cannot find 'X'. Install 'xxx' package"
+#        require_command [required command] || die 2
+#
+# Returns: 0 if required command is available; 1 if required command is not available
+################################################################################
+function require_command() {
+  type -P "$1" > /dev/null
+}
+
+################################################################################
+# Check if script is being run by root user
+#
+# Usage: require_root || die 2 "This script must be run as root"
+#        require_root && die 2 "This script must not be run as root"
+#
+# Returns: 0 if being run as root; 1 if not being run as root
+################################################################################
+function require_root() {
+  (( EUID == 0 ))
+}
+
+################################################################################
+# Check if script is piped
+#
+# Usage: is_piped
+#
+# Returns: 0 if output is piped; 1 if output is not piped
+################################################################################
+function is_piped() {
+  [[ ! -t 1 ]]
+}
+
+################################################################################
+# Check if script is sourced
+#
+# Usage: is_sourced
+#
+# Returns: 0 if being sourced; 1 if not being sourced
+#################################################################################
+function is_sourced() {
+  [[ "${BASH_SOURCE[0]}" != "$0" ]]
+}
+
+################################################################################
+# Check if script is interactive
+#
+# Based on https://mywiki.wooledge.org/BashFAQ/109
+#
+# Usage: is_interactive
+#
+# Returns: 0 if interactive; 1 if not interactive
+#################################################################################
+function is_interactive() {
+  [[ $- == *i* || -t 0 ]]
+}
+
+# Minimum supported Bash version for Octivi Bash Boilerplate is Bash 4.4
+require_bash_version 4 4 || { echo "At least Bash 4.4 is required"; is_sourced && return 2 || exit 2; }
+
+# Disable colors if script is piped
+if is_piped; then
+  NO_COLOR=1
+fi
+
+# Run main only when executed directly; do nothing when sourced.
+if ! is_sourced; then
+  main "$@"
+fi
+# <<< OBB:END
