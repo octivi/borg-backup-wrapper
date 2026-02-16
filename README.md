@@ -1,6 +1,6 @@
 # BorgBackup Wrapper
 
-[![GitHub Releases](https://img.shields.io/github/v/release/octivi/update-securitytxt-expires?sort=semver)](https://github.com/octivi/borg-backup-wrapper/releases)
+[![GitHub Releases](https://img.shields.io/github/v/release/octivi/borg-backup-wrapper?sort=semver)](https://github.com/octivi/borg-backup-wrapper/releases)
 [![License: MIT](https://img.shields.io/github/license/octivi/borg-backup-wrapper)](https://choosealicense.com/licenses/mit/)
 [![Conventional Commits](https://img.shields.io/badge/Conventional%20Commits-1.0.0-yellow.svg)](https://conventionalcommits.org/)
 [![Semantic Versioning](https://img.shields.io/badge/SemVer-2.0.0-blue)](https://semver.org/spec/v2.0.0.html)
