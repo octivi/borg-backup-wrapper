@@ -16,46 +16,37 @@ BorgBackup is an excellent archiver offering deduplication, compression, and enc
 - `borg` installed and available in `PATH`.
 - [Octivi Bash Boilerplate (OBB)](https://github.com/octivi/bash-boilerplate) is embedded in the `borg-backup` script, so no separate OBB installation is required.
 
-## Installation
+## Install
 
 ### Manual
 
-Download the `borg-backup` script and verify its checksum before installation.
+Just download
 
 ```bash
-# Replace v1.0.0 with /latest/download/ URLs if you want the latest release.
-tmp_dir="$(mktemp -d)"
-trap 'rm -rf "${tmp_dir}"' EXIT
-
-curl -fsSLo "${tmp_dir}/borg-backup" \
-  "https://github.com/octivi/borg-backup-wrapper/releases/download/v1.0.0/borg-backup"
-curl -fsSLo "${tmp_dir}/borg-backup.sha256" \
-  "https://github.com/octivi/borg-backup-wrapper/releases/download/v1.0.0/borg-backup.sha256"
-
-(
-  cd "${tmp_dir}"
-  sha256sum -c borg-backup.sha256
-)
-
-sudo install -m 0755 "${tmp_dir}/borg-backup" /usr/local/bin/borg-backup
+# or https://github.com/octivi/borg-backup-wrapper/releases/latest/download/borg-backup if you always want the latest release
+curl -fsSLO https://github.com/octivi/borg-backup-wrapper/releases/download/v1.0.0/borg-backup \
+  && curl -fsSL https://github.com/octivi/borg-backup-wrapper/releases/download/v1.0.0/borg-backup.sha256 \
+  | sha256sum -c - \
+  && sudo install -m 0755 borg-backup /usr/local/bin/borg-backup \
+  || { echo "Checksum verification failed; aborting installation." >&2; exit 1; }
 ```
 
 ### Ansible
 
-One simple task to install `borg-backup-wrapper`.
+One simple task to install `borg-backup`
 
 ```yaml
-- name: 'Install Borg Backup Wrapper'
+- name: "Install Borg Backup Wrapper"
   ansible.builtin.get_url:
-    # or https://github.com/octivi/borg-backup-wrapper/releases/latest/download/borg-backup if you want always latest release
-    url: 'https://github.com/octivi/borg-backup-wrapper/releases/download/v1.0.0/borg-backup'
-    dest: '/usr/local/bin/borg-backup'
-    owner: 'root'
-    group: 'root'
-    mode: '0755'
-    # or https://github.com/octivi/borg-backup-wrapper/releases/latest/download/borg-backup.sha256 if you want always latest release
-    checksum: 'sha256:https://github.com/octivi/borg-backup-wrapper/releases/download/v1.0.0/borg-backup.sha256'
-  register: '__borg_backup_wrapper_download'
+    # or https://github.com/octivi/borg-backup-wrapper/releases/latest/download/borg-backup if you always want the latest release
+    url: "https://github.com/octivi/borg-backup-wrapper/releases/download/v1.0.0/borg-backup"
+    dest: "/usr/local/bin/borg-backup"
+    owner: "root"
+    group: "root"
+    mode: "0755"
+    # or https://github.com/octivi/borg-backup-wrapper/releases/latest/download/borg-backup.sha256 if you always want the latest release
+    checksum: "sha256:https://github.com/octivi/borg-backup-wrapper/releases/download/v1.0.0/borg-backup.sha256"
+  register: "__borg_backup_wrapper_download"
   until: __borg_backup_wrapper_download is succeeded
   retries: 5
   delay: 2
