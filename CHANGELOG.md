@@ -1,6 +1,6 @@
 # Changelog
 
-## [Unreleased] - 2026-02-18
+## [v1.1.0] - 2026-02-19
 
 ### Changed
 
@@ -25,5 +25,5 @@
 
 - Fix `recreate` behavior so it supports compression selection, does not require extra positional arguments, and reuses `create` command options correctly ([`0ee9f17`](https://github.com/octivi/borg-backup-wrapper/commit/0ee9f17), [`0d93e76`](https://github.com/octivi/borg-backup-wrapper/commit/0d93e76), [`f39c6b9`](https://github.com/octivi/borg-backup-wrapper/commit/f39c6b9)) (Marcin Engelmann)
 
-[Unreleased]: https://github.com/octivi/borg-backup-wrapper/compare/v1.0.0...HEAD
+[v1.1.0]: https://github.com/octivi/borg-backup-wrapper/releases/tag/v1.1.0
 [v1.0.0]: https://github.com/octivi/borg-backup-wrapper/releases/tag/v1.0.0
