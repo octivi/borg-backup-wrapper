@@ -24,8 +24,8 @@ Just download
 
 ```bash
 # or https://github.com/octivi/borg-backup-wrapper/releases/latest/download/borg-backup if you always want the latest release
-curl -fsSLO https://github.com/octivi/borg-backup-wrapper/releases/download/v1.0.0/borg-backup \
-  && curl -fsSL https://github.com/octivi/borg-backup-wrapper/releases/download/v1.0.0/borg-backup.sha256 \
+curl -fsSLO https://github.com/octivi/borg-backup-wrapper/releases/download/v1.1.0/borg-backup \
+  && curl -fsSL https://github.com/octivi/borg-backup-wrapper/releases/download/v1.1.0/borg-backup.sha256 \
   | sha256sum -c - \
   && sudo install -m 0755 borg-backup /usr/local/bin/borg-backup \
   || { echo "Checksum verification failed; aborting installation." >&2; exit 1; }
@@ -39,13 +39,13 @@ One simple task to install `borg-backup`
 - name: "Install Borg Backup Wrapper"
   ansible.builtin.get_url:
     # or https://github.com/octivi/borg-backup-wrapper/releases/latest/download/borg-backup if you always want the latest release
-    url: "https://github.com/octivi/borg-backup-wrapper/releases/download/v1.0.0/borg-backup"
+    url: "https://github.com/octivi/borg-backup-wrapper/releases/download/v1.1.0/borg-backup"
     dest: "/usr/local/bin/borg-backup"
     owner: "root"
     group: "root"
     mode: "0755"
     # or https://github.com/octivi/borg-backup-wrapper/releases/latest/download/borg-backup.sha256 if you always want the latest release
-    checksum: "sha256:https://github.com/octivi/borg-backup-wrapper/releases/download/v1.0.0/borg-backup.sha256"
+    checksum: "sha256:https://github.com/octivi/borg-backup-wrapper/releases/download/v1.1.0/borg-backup.sha256"
   register: "__borg_backup_wrapper_download"
   until: __borg_backup_wrapper_download is succeeded
   retries: 5

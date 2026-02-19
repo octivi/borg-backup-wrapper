@@ -42,9 +42,12 @@ jobs:
           ## Install
 
           ```bash
-          curl -fsSLO "https://github.com/${{ github.event.repository.owner.login }}/${{ github.event.repository.name }}/releases/download/${{ github.ref_name }}/borg-backup"
-          curl -fsSL "https://github.com/${{ github.event.repository.owner.login }}/${{ github.event.repository.name }}/releases/download/${{ github.ref_name }}/borg-backup.sha256" | sha256sum -c -
-          sudo install -m 0755 borg-backup /usr/local/bin/borg-backup
+          # or https://github.com/${{ github.event.repository.owner.login }}/${{ github.event.repository.name }}/releases/latest/download/borg-backup if you always want the latest release
+          curl -fsSLO "https://github.com/${{ github.event.repository.owner.login }}/${{ github.event.repository.name }}/releases/download/${{ github.ref_name }}/borg-backup" \
+            && curl -fsSL "https://github.com/${{ github.event.repository.owner.login }}/${{ github.event.repository.name }}/releases/download/${{ github.ref_name }}/borg-backup.sha256" \
+            | sha256sum -c - \
+            && sudo install -m 0755 borg-backup /usr/local/bin/borg-backup \
+            || { echo "Checksum verification failed; aborting installation." >&2; exit 1; }
           ```
           EOF
 
